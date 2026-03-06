@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,8 +30,46 @@ const G = {
   footer: "linear-gradient(160deg, #020a05 0%, #071a0e 40%, #0a2318 70%, #030d07 100%)",
 };
 
-/* ── Global CSS ───────────────────────────────────────────── */
+/* ── Gradient text helpers ───────────────────────────────── */
+const GT = {
+  // main heading gradient — dark forest to bright mid green
+  heading: "linear-gradient(135deg, #0a2e18 0%, #166534 35%, #22c55e 65%, #15803d 100%)",
+  // subheading — slightly lighter
+  sub:     "linear-gradient(135deg, #14532d 0%, #16a34a 50%, #4ade80 100%)",
+  // on dark backgrounds (CTA panel)
+  light:   "linear-gradient(135deg, #86efac 0%, #4ade80 40%, #d1fae5 70%, #86efac 100%)",
+  // accent italic/em spans
+  accent:  "linear-gradient(135deg, #166534 0%, #22c55e 60%, #4ade80 100%)",
+};
+
+// inline style shorthand for gradient text
+const gText = (grad) => ({
+  background: grad,
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+});
 const globalStyles = `
+  /* ── Scroll-reveal states ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .reveal.reveal-left {
+    transform: translateX(-48px);
+  }
+  .reveal.reveal-right {
+    transform: translateX(48px);
+  }
+  .reveal.reveal-scale {
+    transform: scale(0.92) translateY(24px);
+  }
+  .reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+  }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(24px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -103,6 +141,42 @@ const globalStyles = `
     border-color: rgba(201,168,76,0.35) !important;
   }
 `;
+
+/* ─────────────────────────────────────────────────────────────
+   Scroll-reveal wrapper
+   dir: "up" | "left" | "right" | "scale"
+   delay: CSS delay string e.g. "0.1s"
+───────────────────────────────────────────────────────────── */
+function Reveal({ children, dir = "up", delay = "0s", className = "", style = {} }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const dirClass = dir === "left" ? "reveal-left"
+    : dir === "right" ? "reveal-right"
+    : dir === "scale" ? "reveal-scale"
+    : "";
+
+  return (
+    <div
+      ref={ref}
+      className={cn("reveal", dirClass, visible && "is-visible", className)}
+      style={{ transitionDelay: visible ? delay : "0s", ...style }}
+    >
+      {children}
+    </div>
+  );
+}
 
 /* ── Reusable primitives ──────────────────────────────────── */
 
@@ -321,8 +395,15 @@ function Navbar() {
 
       <div className="flex items-center gap-2">
         <Button variant="ghost"
-          className="text-green-900 hover:bg-green-900/8 font-medium text-sm"
-          style={{ fontFamily:"var(--font-dm)" }}>Log In</Button>
+          className="font-medium text-sm"
+          style={{
+            fontFamily:"var(--font-dm)",
+            color: "#78350f",
+            background: `linear-gradient(110deg, #f5f0e8 0%, ${GOLD_LIGHT} 50%, #f5f0e8 100%)`,
+            boxShadow: `0 2px 10px ${GOLD}44`,
+          }}>
+          Log In
+        </Button>
         <Button className="shiny-btn text-green-50 text-sm font-semibold"
           style={{ background: G.deep, fontFamily:"var(--font-dm)",
             boxShadow:"0 2px 14px rgba(20,83,45,0.45), inset 0 1px 0 rgba(255,255,255,0.12)" }}
@@ -443,7 +524,7 @@ function Hero() {
           style={{ fontFamily:"var(--font-bricolage)" }}>
           Discover{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 text-green-700">green spaces</span>
+            <span className="relative z-10" style={gText(GT.accent)}>green spaces</span>
             <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 320 14"
               fill="none" preserveAspectRatio="none">
               <path d="M2 10 Q80 3 160 8 Q240 13 318 6"
@@ -497,7 +578,8 @@ function Hero() {
                 <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-px h-8"
                   style={{ background:`linear-gradient(to bottom, transparent, ${GOLD}55, transparent)` }} />
               )}
-              <div className="text-3xl font-bold" style={{ fontFamily:"var(--font-bricolage)", color:"#1a4d2e" }}>{val}</div>
+              <div className="text-3xl font-bold"
+                style={{ fontFamily:"var(--font-bricolage)", color:"#1a4d2e" }}>{val}</div>
               <div className="text-xs mt-1 uppercase tracking-widest"
                 style={{ fontFamily:"var(--font-dm)", color:"rgba(20,83,45,0.45)" }}>{label}</div>
             </div>
@@ -542,7 +624,8 @@ function MapPreview() {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center relative z-10">
         {/* Map mockup */}
-        <div className="relative rounded-3xl overflow-hidden border shadow-2xl aspect-[4/3] order-2 lg:order-1"
+        <Reveal dir="left" delay="0s" className="order-2 lg:order-1">
+        <div className="relative rounded-3xl overflow-hidden border shadow-2xl aspect-[4/3]"
           style={{ borderColor:"rgba(20,83,45,0.12)",
             boxShadow:`0 30px 80px rgba(20,83,45,0.12), 0 0 0 1px rgba(20,83,45,0.05), 0 0 0 4px ${GOLD_PALE}` }}>
           <div className="absolute inset-0" style={{
@@ -603,15 +686,17 @@ function MapPreview() {
               style={{ background: G.deep, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)" }}>View</Button>
           </div>
         </div>
+        </Reveal>
 
         {/* Text side */}
-        <div className="order-1 lg:order-2">
+        <Reveal dir="right" delay="0.1s" className="order-1 lg:order-2">
+        <div>
           <span className="text-xs font-bold tracking-[0.12em] uppercase block mb-3"
             style={{ fontFamily:"var(--font-dm)", color:GOLD }}>Interactive Map</span>
           <h2 className="text-4xl lg:text-5xl font-extrabold text-green-950 leading-[1.08] tracking-tight mb-5"
             style={{ fontFamily:"var(--font-bricolage)" }}>
             Every trail & park —<br />
-            <em className="not-italic text-green-700">at a glance.</em>
+            <em className="not-italic" style={gText(GT.accent)}>at a glance.</em>
           </h2>
           <p className="text-base text-green-900/55 leading-relaxed max-w-[400px] mb-8"
             style={{ fontFamily:"var(--font-dm)", fontWeight:300 }}>
@@ -637,6 +722,7 @@ function MapPreview() {
             ))}
           </div>
         </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -663,16 +749,19 @@ function Features() {
       <GoldDot size={3} style={{ bottom:"12%", right:"35%", position:"absolute" }} delay="2.3s" />
 
       <div className="max-w-6xl mx-auto relative z-10">
+        <Reveal dir="up" delay="0s">
         <div className="text-center mb-14">
           <span className="text-xs font-bold tracking-[0.12em] uppercase block mb-3"
             style={{ fontFamily:"var(--font-dm)", color:GOLD }}>Everything you need</span>
           <h2 className="text-4xl lg:text-5xl font-extrabold text-green-950 tracking-tight leading-[1.08]"
-            style={{ fontFamily:"var(--font-bricolage)" }}>Built for every explorer.</h2>
+            style={{ fontFamily:"var(--font-bricolage)" }}>Built for <em className="not-italic" style={gText(GT.accent)}>every explorer.</em></h2>
         </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map(({ Icon, title, desc, gold }) => (
-            <Card key={title} className="feature-card border bg-white shadow-none rounded-2xl transition-all duration-300 cursor-default"
+          {FEATURES.map(({ Icon, title, desc, gold }, i) => (
+            <Reveal key={title} dir="up" delay={`${i * 0.07}s`}>
+            <Card className="feature-card border bg-white shadow-none rounded-2xl transition-all duration-300 cursor-default h-full"
               style={{ borderColor: gold ? GOLD_RING : "rgba(20,83,45,0.08)" }}>
               {gold && <div className="h-[2px] w-full rounded-t-2xl"
                 style={{ background:`linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />}
@@ -689,6 +778,7 @@ function Features() {
                 <p className="text-sm text-green-900/50 leading-relaxed" style={{ fontFamily:"var(--font-dm)" }}>{desc}</p>
               </CardContent>
             </Card>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -721,21 +811,24 @@ function HowItWorks() {
       <VineCluster corner="br" color="#166534" goldAccent />
 
       <div className="max-w-4xl mx-auto text-center relative z-10">
+        <Reveal dir="up" delay="0s">
         <span className="text-xs font-bold tracking-[0.12em] uppercase block mb-3"
           style={{ fontFamily:"var(--font-dm)", color:GOLD }}>Simple by design</span>
         <h2 className="text-4xl lg:text-5xl font-extrabold text-green-950 tracking-tight leading-[1.08] mb-16"
           style={{ fontFamily:"var(--font-bricolage)" }}>
           Up and exploring{" "}
-          <em className="not-italic text-green-700">in under a minute.</em>
+          <em className="not-italic" style={gText(GT.accent)}>in under a minute.</em>
         </h2>
+        </Reveal>
 
         <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-8">
           {/* Gold connector line */}
           <div className="hidden sm:block absolute top-10 left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-px pointer-events-none"
             style={{ background:`linear-gradient(90deg, ${GOLD}44, ${GOLD}BB, ${GOLD}44)` }} />
 
-          {STEPS.map(({ num, icon, title, desc }) => (
-            <div key={num} className="flex flex-col items-center text-center">
+          {STEPS.map(({ num, icon, title, desc }, i) => (
+            <Reveal key={num} dir="up" delay={`${i * 0.12}s`}>
+            <div className="flex flex-col items-center text-center">
               <div className="relative mb-5">
                 {/* Outer pulse ring */}
                 <div className="absolute inset-[-8px] rounded-full pointer-events-none"
@@ -750,6 +843,7 @@ function HowItWorks() {
               <h3 className="text-base font-bold text-green-950 mb-1.5" style={{ fontFamily:"var(--font-bricolage)" }}>{title}</h3>
               <p className="text-sm text-green-900/50 leading-relaxed" style={{ fontFamily:"var(--font-dm)" }}>{desc}</p>
             </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -768,6 +862,7 @@ function CTA() {
       <GoldDot size={3} style={{ bottom:"25%", left:"22%", position:"absolute" }} delay="1.8s" />
 
       <div className="max-w-3xl mx-auto relative z-10">
+        <Reveal dir="scale" delay="0s">
         <div className="relative rounded-3xl px-10 py-16 text-center overflow-hidden"
           style={{ background: G.panel,
             boxShadow:`0 32px 80px rgba(20,83,45,0.45), 0 0 0 1px rgba(255,255,255,0.05), 0 0 0 3px ${GOLD}18` }}>
@@ -822,8 +917,8 @@ function CTA() {
               style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.12) 100%)", border:`1.5px solid ${GOLD}55`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)" }}>
               <Leaf className="w-7 h-7 text-green-200" />
             </div>
-            <h2 className="text-4xl lg:text-5xl font-extrabold text-green-50 tracking-tight leading-[1.08] mb-4"
-              style={{ fontFamily:"var(--font-bricolage)" }}>
+            <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.08] mb-4"
+              style={{ fontFamily:"var(--font-bricolage)", ...gText(GT.light) }}>
               Your next favorite<br />spot is waiting.
             </h2>
             <p className="text-base text-green-200/60 leading-relaxed max-w-md mx-auto mb-10"
@@ -845,6 +940,7 @@ function CTA() {
             </Button>
           </div>
         </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -862,7 +958,7 @@ function Footer() {
           style={{ background: G.mid, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)" }}>
           <Leaf className="w-3.5 h-3.5 text-green-200" />
         </div>
-        <span className="text-green-200 font-bold text-base" style={{ fontFamily:"var(--font-bricolage)" }}>GatorGreen</span>
+        <span className="font-bold text-base" style={{ fontFamily:"var(--font-bricolage)", ...gText(GT.light) }}>GatorGreen</span>
       </div>
       <p className="text-green-500/55 text-xs relative z-10" style={{ fontFamily:"var(--font-dm)" }}>
         © {new Date().getFullYear()} GatorGreen · University of Florida
