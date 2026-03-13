@@ -9,6 +9,7 @@ import {
   MapPin, Leaf, Star, Heart, Sparkles, Map,
   CloudSun, MessageSquare, Award, Route, ArrowRight,
 } from "lucide-react";
+import { signInWithGoogle } from '@/lib/auth'
 
 /* ── Color tokens ─────────────────────────────────────────── */
 const GOLD       = "#C9A84C";
@@ -395,6 +396,7 @@ function Navbar() {
 
       <div className="flex items-center gap-2">
         <Button variant="ghost"
+          onClick={signInWithGoogle}
           className="font-medium text-sm"
           style={{
             fontFamily:"var(--font-dm)",
@@ -405,6 +407,7 @@ function Navbar() {
           Log In
         </Button>
         <Button className="shiny-btn text-green-50 text-sm font-semibold"
+          onClick={signInWithGoogle}
           style={{ background: G.deep, fontFamily:"var(--font-dm)",
             boxShadow:"0 2px 14px rgba(20,83,45,0.45), inset 0 1px 0 rgba(255,255,255,0.12)" }}
           onMouseEnter={e => { e.currentTarget.style.background = G.mid; e.currentTarget.style.boxShadow = "0 4px 20px rgba(20,83,45,0.55), inset 0 1px 0 rgba(255,255,255,0.15)"; }}
@@ -547,6 +550,7 @@ function Hero() {
         {/* CTAs */}
         <div className="flex flex-wrap gap-3 justify-center animate-[fadeUp_0.7s_0.28s_ease_both]">
           <Button size="lg"
+            onClick={signInWithGoogle}
             className="shiny-btn text-green-50 gap-2.5 px-7 py-6 text-base font-semibold transition-all hover:-translate-y-0.5"
             style={{ fontFamily:"var(--font-dm)", background: G.deep,
               boxShadow:"0 6px 24px rgba(20,83,45,0.45), inset 0 1px 0 rgba(255,255,255,0.13)" }}
@@ -927,6 +931,7 @@ function CTA() {
               peaceful trails, and vibrant community gardens.
             </p>
             <Button size="lg"
+              onClick={signInWithGoogle}
               className="shiny-btn text-green-900 font-semibold gap-2.5 px-8 py-6 text-base transition-all hover:-translate-y-0.5 hover:shadow-xl"
               style={{
                 fontFamily:"var(--font-dm)",
