@@ -10,6 +10,7 @@ import {
   CloudSun, MessageSquare, Award, Route, ArrowRight,
 } from "lucide-react";
 import { signInWithGoogle } from '@/lib/auth'
+import "leaflet/dist/leaflet.css";
 
 /* ── Color tokens ─────────────────────────────────────────── */
 const GOLD       = "#C9A84C";
@@ -941,7 +942,7 @@ function CTA() {
                 boxShadow:`0 4px 24px ${GOLD}55`,
               }}>
               <GoogleIcon className="w-[18px] h-[18px]" />
-              Get started — it's free
+              Get started — it&apos;s free
             </Button>
           </div>
         </div>
