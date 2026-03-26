@@ -1,33 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const pin = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
-const pinIcon = L.icon({
-  iconUrl: pin,
-  iconSize: [24, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [0, -41],
-});
-
-function FlyToLocations({ locations }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!locations.length) return;
-    if (locations.length === 1) {
-      map.flyTo([locations[0].lat, locations[0].lng], 13);
-    } else {
-      const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng]));
-      map.flyToBounds(bounds, { padding: [40, 40] });
-    }
-  }, [locations]);
-  return null;
-}
+const DashboardMap = dynamic(() => import("@/components/MapComponent"), { ssr: false });
 
 function toSlug(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -674,22 +653,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ width: "60%", position: "relative" }}>
-        <MapContainer
-          center={[29.6448983, -82.3553288]}
-          zoom={13}
-          style={{ width: "100%", height: "100%" }}
-        >
-          <TileLayer
-            attribution='© OpenStreetMap'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <FlyToLocations locations={locations} />
-          {locations.map(({ name, lat, lng }) => (
-            <Marker key={name} position={[lat, lng]} icon={pinIcon}>
-              <Popup>{name}</Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        <DashboardMap locations={locations} />
       </div>
 
       <style>{`@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.75} }`}</style>

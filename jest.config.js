@@ -1,12 +1,17 @@
-module.exports = {
+const nextJest = require("next/jest");
+
+const createJestConfig = nextJest({
+  dir: "./",
+});
+
+const customJestConfig = {
   testEnvironment: "jsdom",
-  setupFilesAfterEachTest: ["@testing-library/jest-dom"],
-  transform: {
-    "^.+\\.[jt]sx?$": "babel-jest",
-  },
+  setupFilesAfterEnv: ["@testing-library/jest-dom"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    "leaflet": "<rootDir>/__mocks__/leaflet.js",
+    leaflet: "<rootDir>/__mocks__/leaflet.js",
   },
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
 };
+
+module.exports = createJestConfig(customJestConfig);
