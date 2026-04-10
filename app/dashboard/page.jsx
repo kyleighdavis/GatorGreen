@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import "leaflet/dist/leaflet.css";
+import { Star } from "lucide-react";
 
 const DashboardMap = dynamic(() => import("@/components/MapComponent"), { ssr: false });
 
@@ -324,6 +325,7 @@ export default function Dashboard() {
   const [favorites,    setFavorites]    = useState(new Set());
   const [savingFav,    setSavingFav]    = useState(null);
   const [searches,     setSearches]     = useState(null);
+  const [favoriteSpaces, setFavoriteSpaces] = useState(null);
   const [searched,     setSearched]     = useState(false);
   const [tab,          setTab]          = useState("search");
 
@@ -340,14 +342,25 @@ export default function Dashboard() {
         if (prof.lat)  setLat(String(prof.lat));
         if (prof.long) setLng(String(prof.long));
       }
-      const { data: favs } = await supabase.from("favorites")
-        .select("space_id").eq("user_id", user.id);
-      if (favs) setFavorites(new Set(favs.map((f) => f.space_id)));
+      const { data: favs } = await supabase
+        .from("favorites")
+        .select("space_id, green_spaces(slug)")
+        .eq("user_id", user.id);
+      if (favs) setFavorites(new Set(favs.map((f) => f.green_spaces?.slug).filter(Boolean)));
       loadSearches(user.id);
+      loadFavorites(user.id);
       setAuthReady(true);
     };
     init();
   }, []);
+
+  const loadFavorites = async (uid) => {
+    const { data } = await supabase
+      .from("favorites")
+      .select("space_id, green_spaces(*)")
+      .eq("user_id", uid);
+    setFavoriteSpaces((data || []).map((f) => f.green_spaces).filter(Boolean));
+  };
 
   const loadSearches = async (uid) => {
     const { data } = await supabase.from("searches").select("*")
@@ -412,25 +425,27 @@ export default function Dashboard() {
 
   const toggleFavorite = async (space, idx) => {
     if (!user) return;
+    const slug = toSlug(space.name);
     const { data: dbSpace } = await supabase.from("green_spaces")
-      .select("id").eq("slug", toSlug(space.name)).maybeSingle();
+      .select("id").eq("slug", slug).maybeSingle();
     if (!dbSpace) return;
     const spaceId = dbSpace.id;
     setSavingFav(idx);
-    if (favorites.has(spaceId)) {
+    if (favorites.has(slug)) {
       await supabase.from("favorites").delete().eq("user_id", user.id).eq("space_id", spaceId);
-      setFavorites((prev) => { const s = new Set(prev); s.delete(spaceId); return s; });
+      setFavorites((prev) => { const s = new Set(prev); s.delete(slug); return s; });
     } else {
       await supabase.from("favorites").insert({ user_id: user.id, space_id: spaceId });
-      setFavorites((prev) => new Set([...prev, spaceId]));
+      setFavorites((prev) => new Set([...prev, slug]));
     }
+    loadFavorites(user.id);
     setSavingFav(null);
   };
 
   const isRanger = profile?.role === "park_ranger";
   const tabs     = isRanger
-    ? [["search", "Search"], ["manage", "Manage"], ["history", "History"]]
-    : [["search", "Search"], ["history", "Past Searches"]];
+    ? [["search", "Search"], ["manage", "Manage"], ["favorites", "Favorites"], ["history", "History"]]
+    : [["search", "Search"], ["favorites", "Favorites"], ["history", "Past Searches"]];
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "var(--font-bricolage)" }}>
@@ -592,15 +607,20 @@ export default function Dashboard() {
                     <span>◯ {TYPE_EMOJI[space.type] || ""} {space.name}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {user && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
-                          disabled={savingFav === i}
-                          style={{ background: "none", border: "none", cursor: "pointer",
-                            fontSize: 14, padding: 0, opacity: savingFav === i ? .5 : 1 }}
-                        >
-                          
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
+                        disabled={savingFav === i}
+                        style={{ background: "none", border: "none", cursor: "pointer",
+                          padding: 0, opacity: savingFav === i ? .5 : 1,
+                          display: "flex", alignItems: "center" }}
+                      >
+                        <Star
+                          size={16}
+                          color="#305127"
+                          fill={favorites.has(toSlug(space.name)) ? "#305127" : "none"}
+                        />
+                      </button>
+                    )}
                       <span style={{ fontSize: 10, color: "#305127",
                         background: "rgba(20,83,45,0.08)", padding: "2px 7px",
                         borderRadius: 20, textTransform: "uppercase",
@@ -643,6 +663,64 @@ export default function Dashboard() {
           />
         )}
 
+        {tab === "favorites" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {favoriteSpaces === null && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ ...cardStyle, opacity: .4,
+                  animation: `pulse 1.5s ${i * .15}s ease-in-out infinite` }}>&nbsp;</div>
+              ))}
+            </div>
+          )}
+          {favoriteSpaces !== null && favoriteSpaces.length === 0 && (
+            <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
+              No favorites yet. Star a space to save it here!
+            </div>
+          )}
+          {(favoriteSpaces || []).map((space, i) => (
+            <div
+              key={space.id}
+              onClick={() => setLocations([{ name: space.name, lat: space.lat, lng: space.long }])}
+              style={{ ...cardStyle, cursor: "pointer", flexDirection: "column",
+                alignItems: "flex-start", gap: 4 }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between",
+                width: "100%", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
+                    style={{ background: "none", border: "none", cursor: "pointer",
+                      padding: 0, display: "flex", alignItems: "center" }}
+                  >
+                    <Star size={16} color="#305127" fill="#305127" />
+                  </button>
+                  <span>{TYPE_EMOJI[space.type] || ""} {space.name}</span>
+                </div>
+                <span style={{ fontSize: 10, color: "#305127",
+                  background: "rgba(20,83,45,0.08)", padding: "2px 7px",
+                  borderRadius: 20, textTransform: "uppercase",
+                  letterSpacing: ".04em", fontWeight: 600,
+                  fontFamily: "var(--font-dm)" }}>
+                  {space.type?.replace("_", " ")}
+                </span>
+              </div>
+              {space.description && (
+                <span style={{ fontSize: 12.5, color: "#374151", paddingLeft: 16,
+                  fontFamily: "var(--font-dm)", lineHeight: 1.5 }}>
+                  {space.description}
+                </span>
+              )}
+              {space.location && (
+                <span style={{ fontSize: 11, color: "#64748b", paddingLeft: 16,
+                  fontFamily: "var(--font-dm)" }}>
+                  {space.location}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
         {tab === "history" && (
           <PastSearches
             searches={searches}
