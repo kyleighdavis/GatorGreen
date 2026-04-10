@@ -543,7 +543,6 @@ export default function Dashboard() {
                 style={inputStyle}
               />
             </div>
-
             {locError && (
               <p style={{ margin: 0, fontSize: 12, color: "#ef4444", fontFamily: "var(--font-dm)" }}>
                 {locError}
@@ -568,7 +567,6 @@ export default function Dashboard() {
                 {isLoading ? "Searching..." : "Search"}
               </button>
             </div>
-
             {apiError && (
               <p style={{ margin: 0, fontSize: 12, color: "#ef4444", fontFamily: "var(--font-dm)" }}>
                 {apiError}
@@ -582,7 +580,6 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-
             {searched && !isLoading && resultSpaces.length === 0 && !apiError && (
               <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
                 No spaces found. Try a different location.
@@ -607,20 +604,20 @@ export default function Dashboard() {
                     <span>◯ {TYPE_EMOJI[space.type] || ""} {space.name}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       {user && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
-                        disabled={savingFav === i}
-                        style={{ background: "none", border: "none", cursor: "pointer",
-                          padding: 0, opacity: savingFav === i ? .5 : 1,
-                          display: "flex", alignItems: "center" }}
-                      >
-                        <Star
-                          size={16}
-                          color="#305127"
-                          fill={favorites.has(toSlug(space.name)) ? "#305127" : "none"}
-                        />
-                      </button>
-                    )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
+                          disabled={savingFav === i}
+                          style={{ background: "none", border: "none", cursor: "pointer",
+                            padding: 0, opacity: savingFav === i ? .5 : 1,
+                            display: "flex", alignItems: "center" }}
+                        >
+                          <Star
+                            size={16}
+                            color="#305127"
+                            fill={favorites.has(toSlug(space.name)) ? "#305127" : "none"}
+                          />
+                        </button>
+                      )}
                       <span style={{ fontSize: 10, color: "#305127",
                         background: "rgba(20,83,45,0.08)", padding: "2px 7px",
                         borderRadius: 20, textTransform: "uppercase",
@@ -662,78 +659,74 @@ export default function Dashboard() {
             onMapUpdate={(locs) => setLocations(locs)}
           />
         )}
-
         {tab === "favorites" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {favoriteSpaces === null && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} style={{ ...cardStyle, opacity: .4,
-                  animation: `pulse 1.5s ${i * .15}s ease-in-out infinite` }}>&nbsp;</div>
-              ))}
-            </div>
-          )}
-          {favoriteSpaces !== null && favoriteSpaces.length === 0 && (
-            <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
-              No favorites yet. Star a space to save it here!
-            </div>
-          )}
-          {(favoriteSpaces || []).map((space, i) => (
-            <div
-              key={space.id}
-              onClick={() => setLocations([{ name: space.name, lat: space.lat, lng: space.long }])}
-              style={{ ...cardStyle, cursor: "pointer", flexDirection: "column",
-                alignItems: "flex-start", gap: 4 }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between",
-                width: "100%", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
-                    style={{ background: "none", border: "none", cursor: "pointer",
-                      padding: 0, display: "flex", alignItems: "center" }}
-                  >
-                    <Star size={16} color="#305127" fill="#305127" />
-                  </button>
-                  <span>{TYPE_EMOJI[space.type] || ""} {space.name}</span>
-                </div>
-                <span style={{ fontSize: 10, color: "#305127",
-                  background: "rgba(20,83,45,0.08)", padding: "2px 7px",
-                  borderRadius: 20, textTransform: "uppercase",
-                  letterSpacing: ".04em", fontWeight: 600,
-                  fontFamily: "var(--font-dm)" }}>
-                  {space.type?.replace("_", " ")}
-                </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {favoriteSpaces === null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} style={{ ...cardStyle, opacity: .4,
+                    animation: `pulse 1.5s ${i * .15}s ease-in-out infinite` }}>&nbsp;</div>
+                ))}
               </div>
-              {space.description && (
-                <span style={{ fontSize: 12.5, color: "#374151", paddingLeft: 16,
-                  fontFamily: "var(--font-dm)", lineHeight: 1.5 }}>
-                  {space.description}
-                </span>
-              )}
-              {space.location && (
-                <span style={{ fontSize: 11, color: "#64748b", paddingLeft: 16,
-                  fontFamily: "var(--font-dm)" }}>
-                  {space.location}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+            {favoriteSpaces !== null && favoriteSpaces.length === 0 && (
+              <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
+                No favorites yet. Star a space to save it here!
+              </div>
+            )}
+            {(favoriteSpaces || []).map((space, i) => (
+              <div
+                key={space.id}
+                onClick={() => setLocations([{ name: space.name, lat: space.lat, lng: space.long }])}
+                style={{ ...cardStyle, cursor: "pointer", flexDirection: "column",
+                  alignItems: "flex-start", gap: 4 }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between",
+                  width: "100%", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
+                      style={{ background: "none", border: "none", cursor: "pointer",
+                        padding: 0, display: "flex", alignItems: "center" }}
+                    >
+                      <Star size={16} color="#305127" fill="#305127" />
+                    </button>
+                    <span>{TYPE_EMOJI[space.type] || ""} {space.name}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: "#305127",
+                    background: "rgba(20,83,45,0.08)", padding: "2px 7px",
+                    borderRadius: 20, textTransform: "uppercase",
+                    letterSpacing: ".04em", fontWeight: 600,
+                    fontFamily: "var(--font-dm)" }}>
+                    {space.type?.replace("_", " ")}
+                  </span>
+                </div>
+                {space.description && (
+                  <span style={{ fontSize: 12.5, color: "#374151", paddingLeft: 16,
+                    fontFamily: "var(--font-dm)", lineHeight: 1.5 }}>
+                    {space.description}
+                  </span>
+                )}
+                {space.location && (
+                  <span style={{ fontSize: 11, color: "#64748b", paddingLeft: 16,
+                    fontFamily: "var(--font-dm)" }}>
+                    {space.location}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {tab === "history" && (
           <PastSearches
             searches={searches}
             onSelect={(locs) => setLocations(locs)}
           />
         )}
-
       </div>
-
       <div style={{ width: "60%", position: "relative" }}>
         <DashboardMap locations={locations} />
       </div>
-
       <style>{`@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.75} }`}</style>
     </div>
   );
