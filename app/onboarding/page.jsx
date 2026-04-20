@@ -79,9 +79,29 @@ export default function Onboarding() {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (profile?.preferred_activities) {
-        router.replace("/dashboard");
-        return;
+      if (profile?.preferred_activities) { //Edit onboarding details
+        if (profile.role){
+          setRole(profile.role);
+        }
+
+        //Disassemble so user can see previous selections
+        if (profile.preferred_activities){
+          const known = ACTIVITY_PRESETS.filter(a =>
+              profile.preferred_activities.includes(a)
+          );
+          
+          const custom = profile.preferred_activities
+                .split(", ")
+                .filter(a => !ACTIVITY_PRESETS.includes(a))
+                .join(", ");
+            setActivities(known);
+            setCustomAct(custom);
+        }
+
+        if (profile.max_radius){
+          setMaxRadius(profile.max_radius);
+        }
+
       }
       setInitLoading(false);
     };
@@ -183,7 +203,7 @@ export default function Onboarding() {
           </h2>
 
           <p className="text-green-800 text-center text-lg font-semibold mb-5">
-            Let's set up your profile
+            Let&apos;s set up your profile
           </p>
 
           <form
