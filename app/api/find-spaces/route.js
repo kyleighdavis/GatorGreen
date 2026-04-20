@@ -4,7 +4,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(request) {
   try {
-    const { name, lat, lng, address, preferred_activities, max_radius } = await request.json();
+    const { name, lat, lng, address, preferred_activities, max_radius, role } = await request.json();
 
     const hasCoords  = lat != null && lng != null;
     const hasAddress = address?.trim();
@@ -32,13 +32,15 @@ export async function POST(request) {
 
     // Derive a clean location label for storing (city, state format)
     const locationLabel = name?.trim() || address?.trim() || `${lat}, ${lng}`;
-
+    const locationDescription = role === "naturalist"
+      ? "2-3 sentences explaining interesting ecological features, notable history, and what makes this spot interesting, particularly in terms of activities offered"
+      : "a description what makes this space special";
     const prompt = `You are a nature and outdoor recreation expert.
 
 I am currently near ${locationDesc}.
 ${activityText}
 Please suggest spaces within ${radiusText}.
-
+${role === "naturalist" ? "You are speaking to a naturalist. Descriptions must be 2-3 sentences with ecological detail. Be sure to describe the activities offered here." : ""}
 Return a JSON array of up to 10 real, distinct nature spaces near this location. Include parks, botanical gardens, nature trails, wetlands, greenways, and nature preserves that best match the user's interests.
 
 Each item must follow this exact schema:
@@ -49,7 +51,7 @@ Each item must follow this exact schema:
   "lng": number — accurate longitude,
   "location": "string — the city or regional area this space belongs to, e.g. 'Gainesville, FL'",
   "distance_miles": number — approximate distance from the given location,
-  "description": "string — one sentence describing what makes this space special"
+  "description": "string — ${locationDescription}"
 }
 
 Rules:

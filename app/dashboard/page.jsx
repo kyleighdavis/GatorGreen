@@ -398,6 +398,7 @@ export default function Dashboard() {
           ...(hasCoords ? { lat: parseFloat(lat), lng: parseFloat(lng) } : { address: hasAddress }),
           preferred_activities: profile?.preferred_activities ?? null,
           max_radius:           profile?.max_radius ?? 15,
+          role: (profile && profile.role) ? profile.role : "explorer",
         }),
       });
       const data = await res.json();
