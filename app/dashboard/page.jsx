@@ -256,7 +256,7 @@ function ManageTab({ supabase, onMapUpdate }) {
 
           {results.length === 0 && !showAdd && (
             <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
-              No spaces found. Use "+ Add New Space" to create one.
+              No spaces found. Use &quot;+ Add New Space&quot; to create one.
             </div>
           )}
 
@@ -510,11 +510,18 @@ export default function Dashboard() {
           </button>
         </div>
         {profile && (
-          <p style={{ margin: 0, fontSize: 13, color: "#14532d", opacity: .6, fontFamily: "var(--font-dm)" }}>
-            {profile.name || user?.email?.split("@")[0]}
-            {profile.preferred_activities && ` · ${profile.preferred_activities.slice(0, 30)}${profile.preferred_activities.length > 30 ? "…" : ""}`}
-            {profile.max_radius && ` · ${profile.max_radius} mi`}
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#14532d", opacity: .6, fontFamily: "var(--font-dm)" }}>
+              {profile.name || user?.email?.split("@")[0]}
+              {profile.preferred_activities && ` · ${profile.preferred_activities.slice(0, 30)}${profile.preferred_activities.length > 30 ? "…" : ""}`}
+              {profile.max_radius && ` · ${profile.max_radius} mi`}
+            </p>
+          <button
+            onClick={() => router.push("/onboarding")}
+           style={{ ...btnStyle, marginLeft: "auto", padding: "4px 10px", fontSize: 11,
+            background: "#f5f5f0", color: "#14532d", border: "1px solid rgba(20,83,45,0.2)" }}
+          ><b>Edit Preferences</b>
+          </button></div>
         )}
         <div style={{ display: "flex", borderBottom: "1px solid rgba(20,83,45,0.15)",
           marginBottom: -4 }}>
