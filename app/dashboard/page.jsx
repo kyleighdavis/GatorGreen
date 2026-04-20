@@ -458,20 +458,25 @@ export default function Dashboard() {
   const toggleFavorite = async (space, idx) => {
     if (!user) return;
     const slug = toSlug(space.name);
+    const isFav = favorites.has(slug);
+
+    // Optimistic update — star flips instantly
+    setFavorites((prev) => { const s = new Set(prev); isFav ? s.delete(slug) : s.add(slug); return s; });
+    setFavoriteSpaces((prev) =>
+      isFav
+        ? (prev || []).filter((s) => toSlug(s.name) !== slug)
+        : [...(prev || []), { ...space, long: space.lng ?? space.long }]
+    );
+
+    // DB write in background
     const { data: dbSpace } = await supabase.from("green_spaces")
       .select("id").eq("slug", slug).maybeSingle();
     if (!dbSpace) return;
-    const spaceId = dbSpace.id;
-    setSavingFav(idx);
-    if (favorites.has(slug)) {
-      await supabase.from("favorites").delete().eq("user_id", user.id).eq("space_id", spaceId);
-      setFavorites((prev) => { const s = new Set(prev); s.delete(slug); return s; });
+    if (isFav) {
+      await supabase.from("favorites").delete().eq("user_id", user.id).eq("space_id", dbSpace.id);
     } else {
-      await supabase.from("favorites").insert({ user_id: user.id, space_id: spaceId });
-      setFavorites((prev) => new Set([...prev, slug]));
+      await supabase.from("favorites").insert({ user_id: user.id, space_id: dbSpace.id });
     }
-    loadFavorites(user.id);
-    setSavingFav(null);
   };
 
   const isRanger = profile?.role === "park_ranger";
@@ -813,7 +818,7 @@ export default function Dashboard() {
             )}
             {(favoriteSpaces || []).map((space, i) => (
               <div
-                key={space.id}
+                key={space.id || toSlug(space.name)}
                 onClick={() => setLocations([{ name: space.name, lat: space.lat, lng: space.long }])}
                 style={{ ...cardStyle, cursor: "pointer", flexDirection: "column",
                   alignItems: "flex-start", gap: 4 }}
