@@ -324,10 +324,13 @@ export default function Dashboard() {
   const [activeIdx,    setActiveIdx]    = useState(null);
   const [favorites,    setFavorites]    = useState(new Set());
   const [savingFav,    setSavingFav]    = useState(null);
-  const [searches,     setSearches]     = useState(null);
+  const [searches,       setSearches]       = useState(null);
   const [favoriteSpaces, setFavoriteSpaces] = useState(null);
-  const [searched,     setSearched]     = useState(false);
-  const [tab,          setTab]          = useState("search");
+  const [searched,       setSearched]       = useState(false);
+  const [tab,            setTab]            = useState("search");
+  const [recommendations, setRecommendations] = useState(null);
+  const [recsUpdatedAt,  setRecsUpdatedAt]  = useState(null);
+  const [recsLoading,    setRecsLoading]    = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -347,8 +350,16 @@ export default function Dashboard() {
         .select("space_id, green_spaces(slug)")
         .eq("user_id", user.id);
       if (favs) setFavorites(new Set(favs.map((f) => f.green_spaces?.slug).filter(Boolean)));
-      loadSearches(user.id);
+      await loadSearches(user.id);
       loadFavorites(user.id);
+      const { data: cached } = await supabase
+        .from("recommendations").select("*").eq("user_id", user.id).maybeSingle();
+      if (cached?.spaces?.length) {
+        setRecommendations(cached.spaces);
+        setRecsUpdatedAt(cached.created_at);
+      } else {
+        setRecommendations([]);
+      }
       setAuthReady(true);
     };
     init();
@@ -366,6 +377,27 @@ export default function Dashboard() {
     const { data } = await supabase.from("searches").select("*")
       .eq("user_id", uid).order("created_at", { ascending: false }).limit(30);
     setSearches(data || []);
+    return data || [];
+  };
+
+  const generateRecommendations = async () => {
+    if (!user || !searches || searches.length < 2) return;
+    setRecsLoading(true);
+    try {
+      const res = await fetch("/api/recommendations", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searches: searches.slice(0, 3), profile, previousSpaces: recommendations || [] }),
+      });
+      const data = await res.json();
+      if (res.ok && data.spaces) {
+        const now = new Date().toISOString();
+        setRecommendations(data.spaces);
+        setRecsUpdatedAt(now);
+        await supabase.from("recommendations")
+          .upsert({ user_id: user.id, spaces: data.spaces, created_at: now }, { onConflict: "user_id" });
+      }
+    } catch { /* silent — keep showing last results */ }
+    setRecsLoading(false);
   };
 
   const handleGetCurrentLocation = () => {
@@ -417,7 +449,7 @@ export default function Dashboard() {
           lat: hasCoords ? parseFloat(lat) : null, long: hasCoords ? parseFloat(lng) : null,
           spaces: data.spaces,
         });
-        loadSearches(user.id);
+        await loadSearches(user.id);
       }
     } catch (err) { setApiError(err.message || "Something went wrong."); }
     finally { setIsLoading(false); }
@@ -444,8 +476,8 @@ export default function Dashboard() {
 
   const isRanger = profile?.role === "park_ranger";
   const tabs     = isRanger
-    ? [["search", "Search"], ["manage", "Manage"], ["favorites", "Favorites"], ["history", "History"]]
-    : [["search", "Search"], ["favorites", "Favorites"], ["history", "Past Searches"]];
+    ? [["search", "Search"], ["for-you", "For You"], ["manage", "Manage"], ["favorites", "Favorites"], ["history", "History"]]
+    : [["search", "Search"], ["for-you", "For You"], ["favorites", "Favorites"], ["history", "Past Searches"]];
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "var(--font-bricolage)" }}>
@@ -652,6 +684,104 @@ export default function Dashboard() {
               ))}
             </div>
           </>
+        )}
+        {tab === "for-you" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(20,83,45,0.45)",
+                fontFamily: "var(--font-dm)" }}>
+                {recsUpdatedAt
+                  ? (() => {
+                      const d = new Date(recsUpdatedAt);
+                      const dd = String(d.getDate()).padStart(2, "0");
+                      const mm = String(d.getMonth() + 1).padStart(2, "0");
+                      const yyyy = d.getFullYear();
+                      const hh = String(d.getHours()).padStart(2, "0");
+                      const min = String(d.getMinutes()).padStart(2, "0");
+                      return `Last updated ${dd}/${mm}/${yyyy} at ${hh}:${min}`;
+                    })()
+                  : "AI-picked spaces based on your search history"}
+              </p>
+              <button
+                onClick={generateRecommendations}
+                disabled={recsLoading || !searches || searches.length < 2}
+                style={{ ...btnStyle, padding: "7px 14px", fontSize: 12,
+                  opacity: (recsLoading || !searches || searches.length < 2) ? .5 : 1,
+                  cursor: (recsLoading || !searches || searches.length < 2) ? "not-allowed" : "pointer" }}
+              >
+                {recsLoading ? "Generating..." : recommendations?.length ? "Update" : "Generate"}
+              </button>
+            </div>
+            {recsLoading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} style={{ ...cardStyle, opacity: .4,
+                    animation: `pulse 1.5s ${i * .15}s ease-in-out infinite` }}>&nbsp;</div>
+                ))}
+              </div>
+            )}
+            {!recsLoading && (!recommendations || recommendations.length === 0) && (
+              <div style={{ ...cardStyle, color: "#64748b", fontSize: 13 }}>
+                Make 2 or more searches to unlock personalized recommendations.
+              </div>
+            )}
+            {!recsLoading && (recommendations || []).map((space, i) => (
+              <div
+                key={i}
+                onClick={() => setLocations([{ name: space.name, lat: space.lat, lng: space.lng }])}
+                style={{ ...cardStyle, cursor: "pointer", flexDirection: "column",
+                  alignItems: "flex-start", gap: 4 }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between",
+                  width: "100%", alignItems: "center" }}>
+                  <span>{TYPE_EMOJI[space.type] || "◯"} {space.name}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {user && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(space, i); }}
+                        disabled={savingFav === i}
+                        style={{ background: "none", border: "none", cursor: "pointer",
+                          padding: 0, opacity: savingFav === i ? .5 : 1,
+                          display: "flex", alignItems: "center" }}
+                      >
+                        <Star
+                          size={16}
+                          color="#305127"
+                          fill={favorites.has(toSlug(space.name)) ? "#305127" : "none"}
+                        />
+                      </button>
+                    )}
+                    <span style={{ fontSize: 10, color: "#305127",
+                      background: "rgba(20,83,45,0.08)", padding: "2px 7px",
+                      borderRadius: 20, textTransform: "uppercase",
+                      letterSpacing: ".04em", fontWeight: 600,
+                      fontFamily: "var(--font-dm)" }}>
+                      {space.type?.replace("_", " ")}
+                    </span>
+                  </div>
+                </div>
+                {space.description && (
+                  <span style={{ fontSize: 12.5, color: "#374151", paddingLeft: 8,
+                    fontFamily: "var(--font-dm)", lineHeight: 1.5 }}>
+                    {space.description}
+                  </span>
+                )}
+                {(space.location || space.distance_miles != null) && (
+                  <span style={{ fontSize: 11, color: "#64748b", paddingLeft: 8,
+                    fontFamily: "var(--font-dm)" }}>
+                    {space.location}
+                    {space.distance_miles != null && (
+                      <span style={{ color: "#305127", fontWeight: 600, marginLeft: 6 }}>
+                        {space.distance_miles < 1
+                          ? `${(space.distance_miles * 5280).toFixed(0)} ft away`
+                          : `${space.distance_miles.toFixed(1)} mi away`}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         )}
         {tab === "manage" && (
           <ManageTab
